@@ -47,11 +47,47 @@ However, the paper also presents certain weaknesses, which our group has identif
 
 Additionally, the limitations of the method have not been thoroughly explored, specifically the influence of the input prompt on the diversity and success rate of the generated outputs. Understanding these limitations is vital for refining the model and expanding its applicability.
 
-# Novel contributions:
-
 ## Research questions:
+Given the aforementioned weaknesses of the paper, the research questions that we will answer in this project are the following:
+
+1. Explore semantic variability of the encoded seed.
+   - a. Are only high-frequency components being encoded?
+   - b. Does steering at different levels of noise result in different changes in the semantics?
+
+2. Explore limits of the method, and the influence of the prompt: examine the feasibility of obtaining diverse outputs using similar prompts and investigate the factors affecting the success rate of generating non-similar images. We will analyze the limitations of the current methodology and evaluate the role of the input prompt in achieving the desired outcomes.
+
+# Novel contributions:
+The further research that we will do in this project will be answering the previously mentioned research questions. Additionally, the reproduction of their original code will also be performed to increase the quality of the research, but omitting the training of the models since that would require too much computing power.
 
 ## Methodology:
+
+### Encoding of high-frequency components
+The point of this research question is understanding which aspects of an image are the most important for the encoder. Our hypothesis is that high-frequency components are the most important (corners, edges). In order to test this, we will take an image and get two different versions of it: in one we will apply a high pass filter (so it will only have high-frequency components), and in the other a low pass filter. We will then take the three images (the two edited images and the original), and encode them. If the encoded high-frequency image is more similar to the original encoded image than the encoded low-frequency image, it will mean that the high-frequency components of an image are the most relevant for the encoder. 
+
+The images will be transformed to the frequency domain with the Fast Fourier Transform (FFT), the frenquency filter will be applied, and then the images will be converted back to pixel domain with the Inverse Fast Fourier Transform (IFFT). This will ensure that the encoder is given the same type of image it is used to. 
+
+Finally, besides comparing the latent spaces of the original and edited images, we will also compare the outputted images after they are decoded, just to be sure that the differences between high-pass and low-pass filtered images are the same. 
+
+### Steering the noise
+
+Our contribution consists of a detailed analysis of the capabilities of the DPM-Encoder used in the task of unpaired image to image translation. The aim of this task is to generate a new image $\hat{x}$ from an input image $x$ that is very similar to the input image, but has a different domain.  The CycleDiffusion framework involves encoding and decoding images through a shared latent space. The latent space, denoted as z in the CycleDiffusion model, can be defined as follows:
+$z \sim \text{DPMEnc}(z|x, G_1),\hat{x} = G_2(z)$
+
+With the DPM-encoder defined as:
+$x_1, ..., x_{T-1}, x_T \sim q(x_{1:T}|x_0), \epsilon_t = (x_{t-1} - \mu_T(x_t, t))/\sigma_t, t=T, ..., 1,$
+
+$z := (x_t \oplus \epsilon_T \oplus ... \oplus \epsilon_2 \oplus \epsilon_1)$
+
+
+We investigate the influence of the latent code $z$ on the generation process of $\hat{x}$. In particular, by modifying the latent code $z$ by adding Gaussian noise to it. The DPM-encoder is characterized by its dependence on the time step t ∈ T, which determines the level of noise added. As we increase the number of time steps, the sampled image becomes more saturated with noise. By manipulating the number of time steps in the DPM-encoder, also known as the diffusion process, we can control the amount of noise injected into the latent space. The resulting perturbed $\tilde{z}$ is then used as a starting point by the second pre-trained diffusion model to generate a new image $\hat{x}$. This allows us to evaluate the influence / capabilities of the latent code the DPM-Encoder provides, as we would expect that the more influence $z$ has on the reconstruction process of $\hat{x}$, the more divergence from an optimal domain-transferred generation is visible.
+
+We provide a quantitative analysis of the results by also measuring realism (FID) and faithfulness (SSIM) of the generated images and also provide a qualitative analysis focussing on whether local details such as the background, lighting, pose, and overall color of the animal are preserved.
+
+Through this investigation, we aim to gain insights into the behavior of the latent space under different noise conditions and understand how it influences the quality and fidelity of the generated images. We hypothesize that the same control over the generation can also be obtained by further improving the text prompts. We evaluate the trade-off between a noisy latent space $z$ and a quality improved textual prompt that provides a clearer guidance for the generation $\hat{x}$.
+ 
+ 
+**Weakness** It is very interesting to see that this method seems to succeed in this task. This raises the question of how much control / influence the DPM-Encoder's representation indeed has on the generation process of $\hat{x}$.
+
 
 # Results: 
 
