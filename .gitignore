@@ -134,3 +134,6 @@ Temporary Items
 **/.idea/**/*
 
 .obsidian
+.log
+src/cycle-diffusion/ckpts/*
+src/cycle-diffusion/wandb/*
