@@ -29,7 +29,9 @@ class Args(object):
 
     def __iter__(self):
         # Place elements in the dictionary order for replicability.
-        return sorted(list((arg, getattr(self, arg)) for arg in set(dir(self)) - self.__default__)).__iter__()
+        return sorted(
+            list((arg, getattr(self, arg)) for arg in set(dir(self)) - self.__default__)
+        ).__iter__()
 
     def __len__(self):
         return len(set(dir(self)) - self.__default__)
@@ -65,7 +67,8 @@ def parse_string(string):
 def get_config(cfg_name):
     args = Args()
     parser = configparser.ConfigParser()
-    parser.read(os.path.join('config', cfg_name))
+    parser.read(os.path.join("config", cfg_name))
+
     for section in parser.sections():
         setattr(args, section, Args())
         for key, value in parser.items(section):

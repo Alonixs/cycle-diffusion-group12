@@ -21,8 +21,11 @@ def get_dataset_splits(args):
     cache_root = os.path.join('output', 'cache')
     os.makedirs(cache_root, exist_ok=True)
     name2dataset_splits = dict()
+
     for name, arg_path in args.arg_paths:
+        
         task_args = get_config(arg_path)
+        
         task_raw_data_splits = datasets.load_dataset(
             path=task_args.raw_data.data_program,
             cache_dir=task_args.raw_data.data_cache_dir,
@@ -31,7 +34,7 @@ def get_dataset_splits(args):
         task_dataset_splits = task_preprocessor(task_args, args).preprocess(task_raw_data_splits, cache_root)
 
         name2dataset_splits[name] = task_dataset_splits
-
+    
     return get_multi_task_dataset_splits(meta_args=args, name2dataset_splits=name2dataset_splits)
 
 
@@ -43,9 +46,9 @@ def setup_wandb(training_args):
         # if "MLFLOW_EXPERIMENT_ID" in os.environ:
         #     init_args["group"] = os.environ["MLFLOW_EXPERIMENT_ID"]
         wandb.init(
-            project=os.getenv("WANDB_PROJECT", "your project name"),
+            project=os.getenv("WANDB_PROJECT", "cd"),
             name=training_args.run_name,
-            entity=os.getenv("WANDB_ENTITY", 'your entity'),
+            entity=os.getenv("WANDB_ENTITY", 'cycle-diffusion'),
         )
         wandb.config.update(training_args, allow_val_change=True)
 
@@ -77,6 +80,9 @@ def main():
     # Setup output directory.
     os.makedirs(training_args.output_dir, exist_ok=True)
     args.output_dir = training_args.output_dir
+    
+    
+    
     # Build dataset splits.
     dataset_splits = get_dataset_splits(args)
     # Initialize evaluator.
