@@ -141,3 +141,6 @@ src/cycle-diffusion/wandb/*
 *.png
 *.arrow
 *.json
+
+src/cycle-diffusion/stargan-v2/*
+src/taming-transformers/*
