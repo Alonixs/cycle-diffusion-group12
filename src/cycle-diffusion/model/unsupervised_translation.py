@@ -54,6 +54,9 @@ class UnsupervisedTranslation(nn.Module):
             img = self.target_gan_wrapper(z=z)
 
         # Save latent space representation
+        print(
+            f"==================)n Original Image: {original_image} \n =================="
+        )
         with open(f"z_test.data", "wb") as f:
             pickle.dump(z, f)
 
