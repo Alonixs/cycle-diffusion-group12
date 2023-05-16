@@ -40,12 +40,21 @@ WEIGHTS_NAME = "pytorch_model.bin"
 PREFIX_CHECKPOINT_DIR = "checkpoint"
 
 
-def distributed_concat(tensor: Union[Tuple, List, torch.tensor], num_total_examples: Optional[int] = None):
+def distributed_concat(
+    tensor: Union[Tuple, List, torch.tensor], num_total_examples: Optional[int] = None
+):
     try:
         if isinstance(tensor, (tuple, list)):
-            return type(tensor)(distributed_concat(t, num_total_examples) for t in tensor)
+            return type(tensor)(
+                distributed_concat(t, num_total_examples) for t in tensor
+            )
         elif isinstance(tensor, dict):
-            return type(tensor)({k: distributed_concat(v, num_total_examples) for k, v in tensor.items()})
+            return type(tensor)(
+                {
+                    k: distributed_concat(v, num_total_examples)
+                    for k, v in tensor.items()
+                }
+            )
         elif tensor is None:
             return None
         output_tensors = [tensor.clone() for _ in range(dist.get_world_size())]
@@ -70,14 +79,28 @@ def nested_concat(tensors, new_tensors, padding_index=-100):
         new_tensors
     ), f"Expected `tensors` and `new_tensors` to have the same type but found {type(tensors)} and {type(new_tensors)}."
     if isinstance(tensors, (list, tuple)):
-        return type(tensors)(nested_concat(t, n, padding_index=padding_index) for t, n in zip(tensors, new_tensors))
+        return type(tensors)(
+            nested_concat(t, n, padding_index=padding_index)
+            for t, n in zip(tensors, new_tensors)
+        )
     elif isinstance(tensors, dict):
         assert set(tensors.keys()) == set(new_tensors.keys())
-        return type(tensors)({k: nested_concat(tensors[k], new_tensors[k], padding_index=padding_index) for k in tensors.keys()})
+        return type(tensors)(
+            {
+                k: nested_concat(
+                    tensors[k], new_tensors[k], padding_index=padding_index
+                )
+                for k in tensors.keys()
+            }
+        )
     elif isinstance(tensors, torch.Tensor):
-        return torch_pad_and_concatenate(tensors, new_tensors, padding_index=padding_index)
+        return torch_pad_and_concatenate(
+            tensors, new_tensors, padding_index=padding_index
+        )
     elif isinstance(tensors, np.ndarray):
-        return numpy_pad_and_concatenate(tensors, new_tensors, padding_index=padding_index)
+        return numpy_pad_and_concatenate(
+            tensors, new_tensors, padding_index=padding_index
+        )
     elif tensors is None:
         return None
     else:
@@ -144,18 +167,18 @@ class Trainer:
     scheduler = None
     state = None
 
-    def __init__(self,
-                 args,
-                 model,
-                 compute_metrics,
-                 train_dataset,
-                 eval_dataset,
-                 visualizer,
-                 wandb_run_dir=None,
-                 ):
-
+    def __init__(
+        self,
+        args,
+        model,
+        compute_metrics,
+        train_dataset,
+        eval_dataset,
+        visualizer,
+        wandb_run_dir=None,
+    ):
         # force device and distributed setup init explicitly
-        logging.info(f'Rank {args.local_rank} device = {args.device}')
+        logging.info(f"Rank {args.local_rank} device = {args.device}")
 
         self.args = args
         self.output_interval = 50
@@ -221,16 +244,16 @@ class Trainer:
             },
         ]
         for n, p in self.model.named_parameters():
-            if 'gan_wrapper' in n:
+            if "gan_wrapper" in n:
                 continue
             if n in decay_parameters and p.requires_grad:
                 optimizer_grouped_parameters[0]["params"].append(p)
                 if self.args.verbose and self.is_world_process_zero():
-                    print('Trainable (w/ weight decay):', n)
+                    print("Trainable (w/ weight decay):", n)
             elif n not in decay_parameters and p.requires_grad:
                 optimizer_grouped_parameters[1]["params"].append(p)
                 if self.args.verbose and self.is_world_process_zero():
-                    print('Trainable (w/o weight decay):', n)
+                    print("Trainable (w/o weight decay):", n)
 
         if self.args.adafactor:
             optimizer_cls = Adafactor
@@ -369,9 +392,13 @@ class Trainer:
         load_result = self.model.load_state_dict(state_dict, strict=False)
 
         if len(load_result.missing_keys) != 0:
-            logger.warning(f"There were missing keys in the checkpoint model loaded: {load_result.missing_keys}.")
+            logger.warning(
+                f"There were missing keys in the checkpoint model loaded: {load_result.missing_keys}."
+            )
         if len(load_result.unexpected_keys) != 0:
-            logger.warning(f"There were unexpected keys in the checkpoint model loaded: {load_result.unexpected_keys}.")
+            logger.warning(
+                f"There were unexpected keys in the checkpoint model loaded: {load_result.unexpected_keys}."
+            )
 
     def save_model(self, output_dir: Optional[str] = None):
         """
@@ -402,11 +429,13 @@ class Trainer:
         self.state.save_to_json(path)
 
     def _sorted_checkpoints(
-            self, output_dir=None, checkpoint_prefix=PREFIX_CHECKPOINT_DIR, use_mtime=False
+        self, output_dir=None, checkpoint_prefix=PREFIX_CHECKPOINT_DIR, use_mtime=False
     ) -> List[str]:
         ordering_and_checkpoint_path = []
 
-        glob_checkpoints = [str(x) for x in Path(output_dir).glob(f"{checkpoint_prefix}-*")]
+        glob_checkpoints = [
+            str(x) for x in Path(output_dir).glob(f"{checkpoint_prefix}-*")
+        ]
 
         for path in glob_checkpoints:
             if use_mtime:
@@ -414,15 +443,22 @@ class Trainer:
             else:
                 regex_match = re.match(f".*{checkpoint_prefix}-([0-9]+)", path)
                 if regex_match is not None and regex_match.groups() is not None:
-                    ordering_and_checkpoint_path.append((int(regex_match.groups()[0]), path))
+                    ordering_and_checkpoint_path.append(
+                        (int(regex_match.groups()[0]), path)
+                    )
 
         checkpoints_sorted = sorted(ordering_and_checkpoint_path)
         checkpoints_sorted = [checkpoint[1] for checkpoint in checkpoints_sorted]
         # Make sure we don't delete the best model.
         if self.state.best_model_checkpoint is not None:
-            best_model_index = checkpoints_sorted.index(str(Path(self.state.best_model_checkpoint)))
+            best_model_index = checkpoints_sorted.index(
+                str(Path(self.state.best_model_checkpoint))
+            )
             for i in range(best_model_index, len(checkpoints_sorted) - 2):
-                checkpoints_sorted[i], checkpoints_sorted[i + 1] = checkpoints_sorted[i + 1], checkpoints_sorted[i]
+                checkpoints_sorted[i], checkpoints_sorted[i + 1] = (
+                    checkpoints_sorted[i + 1],
+                    checkpoints_sorted[i],
+                )
         return checkpoints_sorted
 
     def _rotate_checkpoints(self, use_mtime=False, output_dir=None) -> None:
@@ -430,7 +466,9 @@ class Trainer:
             return
 
         # Check if we should delete older checkpoint(s)
-        checkpoints_sorted = self._sorted_checkpoints(use_mtime=use_mtime, output_dir=output_dir)
+        checkpoints_sorted = self._sorted_checkpoints(
+            use_mtime=use_mtime, output_dir=output_dir
+        )
         if len(checkpoints_sorted) <= self.args.save_total_limit:
             return
 
@@ -438,16 +476,20 @@ class Trainer:
         # we don't do to allow resuming.
         save_total_limit = self.args.save_total_limit
         if (
-                self.state.best_model_checkpoint is not None
-                and self.args.save_total_limit == 1
-                and checkpoints_sorted[-1] != self.state.best_model_checkpoint
+            self.state.best_model_checkpoint is not None
+            and self.args.save_total_limit == 1
+            and checkpoints_sorted[-1] != self.state.best_model_checkpoint
         ):
             save_total_limit = 2
 
-        number_of_checkpoints_to_delete = max(0, len(checkpoints_sorted) - save_total_limit)
+        number_of_checkpoints_to_delete = max(
+            0, len(checkpoints_sorted) - save_total_limit
+        )
         checkpoints_to_be_deleted = checkpoints_sorted[:number_of_checkpoints_to_delete]
         for checkpoint in checkpoints_to_be_deleted:
-            logger.info(f"Deleting older checkpoint [{checkpoint}] due to args.save_total_limit")
+            logger.info(
+                f"Deleting older checkpoint [{checkpoint}] due to args.save_total_limit"
+            )
             shutil.rmtree(checkpoint)
 
     def _save_checkpoint(self, metrics=None):
@@ -464,9 +506,13 @@ class Trainer:
         self.save_model(output_dir)
 
         # deepspeed.save_checkpoint above saves model/optim/sched
-        torch.save(self.optimizer.state_dict(), os.path.join(output_dir, "optimizer.pt"))
+        torch.save(
+            self.optimizer.state_dict(), os.path.join(output_dir, "optimizer.pt")
+        )
         with warnings.catch_warnings(record=True) as caught_warnings:
-            torch.save(self.scheduler.state_dict(), os.path.join(output_dir, "scheduler.pt"))
+            torch.save(
+                self.scheduler.state_dict(), os.path.join(output_dir, "scheduler.pt")
+            )
         reissue_pt_warnings(caught_warnings)
 
         # Determine the new best metric / best model checkpoint
@@ -478,9 +524,9 @@ class Trainer:
 
             operator = np.greater if self.args.greater_is_better else np.less
             if (
-                    self.state.best_metric is None
-                    or self.state.best_model_checkpoint is None
-                    or operator(metric_value, self.state.best_metric)
+                self.state.best_metric is None
+                or self.state.best_model_checkpoint is None
+                or operator(metric_value, self.state.best_metric)
             ):
                 self.state.best_metric = metric_value
                 self.state.best_model_checkpoint = output_dir
@@ -500,17 +546,21 @@ class Trainer:
         # A process can arrive here before the process 0 has a chance to save the model, in which case output_dir may
         # not yet exist.
         os.makedirs(output_dir, exist_ok=True)
-        torch.save(rng_states, os.path.join(output_dir, f"rng_state_{self.args.local_rank}.pth"))
+        torch.save(
+            rng_states,
+            os.path.join(output_dir, f"rng_state_{self.args.local_rank}.pth"),
+        )
 
         # Maybe delete some older checkpoints.
         if self.args.should_save:
             self._rotate_checkpoints(use_mtime=True, output_dir=run_dir)
 
-    def _maybe_log_save_evaluate(self,
-                                 weighted_loss,
-                                 losses,
-                                 epoch_end,
-                                 ):
+    def _maybe_log_save_evaluate(
+        self,
+        weighted_loss,
+        losses,
+        epoch_end,
+    ):
         args, state = self.args, self.state
 
         should_log, should_evaluate, should_save = False, False, False
@@ -518,13 +568,19 @@ class Trainer:
         # Log?
         if state.global_step == 1 and args.logging_first_step:
             should_log = True
-        if args.logging_strategy == IntervalStrategy.STEPS and state.global_step % args.logging_steps == 0:
+        if (
+            args.logging_strategy == IntervalStrategy.STEPS
+            and state.global_step % args.logging_steps == 0
+        ):
             should_log = True
         if args.logging_strategy == IntervalStrategy.EPOCH and epoch_end:
             should_log = True
 
         # Evaluate?
-        if args.evaluation_strategy == IntervalStrategy.STEPS and state.global_step % args.eval_steps == 0:
+        if (
+            args.evaluation_strategy == IntervalStrategy.STEPS
+            and state.global_step % args.eval_steps == 0
+        ):
             should_evaluate = True
             if args.load_best_model_at_end:
                 should_save = True
@@ -533,9 +589,9 @@ class Trainer:
 
         # Save?
         if (
-                args.save_strategy == IntervalStrategy.STEPS
-                and args.save_steps > 0
-                and state.global_step % args.save_steps == 0
+            args.save_strategy == IntervalStrategy.STEPS
+            and args.save_steps > 0
+            and state.global_step % args.save_steps == 0
         ):
             should_save = True
         if args.save_strategy == IntervalStrategy.EPOCH and epoch_end:
@@ -543,10 +599,7 @@ class Trainer:
 
         # Log.
         if should_log:
-            logs = {
-                name: loss.mean(0).item()
-                for name, loss in losses.items()
-            }
+            logs = {name: loss.mean(0).item() for name, loss in losses.items()}
 
             logs["weighted_loss"] = weighted_loss.item()
             logs["learning_rate"] = self.scheduler.get_last_lr()[0]
@@ -767,8 +820,8 @@ class Trainer:
         return images, weighted_loss, losses
 
     def prediction_step(
-            self,
-            inputs: Dict[str, Union[torch.Tensor, Any]],
+        self,
+        inputs: Dict[str, Union[torch.Tensor, Any]],
     ) -> Tuple[Optional[torch.Tensor], Optional[torch.Tensor], Optional[torch.Tensor]]:
         """
         Perform an evaluation step on :obj:`model` using obj:`inputs`.
@@ -777,7 +830,7 @@ class Trainer:
 
         Args:
             inputs (:obj:`Dict[str, Union[torch.Tensor, Any]]`):
-                The inputs and targets of the model.
+                The inputs and targets of the model. dict_keys(['sample_id', 'original_image'])
 
                 The dictionary will be unpacked before being fed to the model. Most models expect the targets under the
                 argument :obj:`labels`. Check your model's documentation for all accepted arguments.
@@ -786,15 +839,21 @@ class Trainer:
         self._prepare_inputs(inputs)
 
         with torch.no_grad():
-            images, weighted_loss, losses = self.model(**inputs)
+            images, weighted_loss, losses, z = self.model(**inputs)  # HERE
+            # images: tuple of image tensor, ___
+            print(f"====== z shape: {z.shape} ======")
+            print(f"Images len: {len(images)}")
+            print(f"Images 1: {images[0]}")
+            print(f"Images 2: {images[1]}")
+            print(f"Images 1 shape: {images.shape}")
 
-        return images, weighted_loss, losses
+        return images, weighted_loss, losses, z  # HERE
 
     def evaluation_loop(
-            self,
-            dataloader: DataLoader,
-            description: str,
-            metric_key_prefix: str = "eval",
+        self,
+        dataloader: DataLoader,
+        description: str,
+        metric_key_prefix: str = "eval",
     ) -> Tuple[Dict[str, float], int]:
         """
         Prediction/evaluation loop, shared by :obj:`Trainer.evaluate()` and :obj:`Trainer.predict()`.
@@ -826,23 +885,36 @@ class Trainer:
         # Main evaluation loop
         for step, inputs in tqdm(enumerate(dataloader)):
             # Prediction step
-            prediction_outputs = self.prediction_step(inputs)
+            prediction_outputs = self.prediction_step(
+                inputs
+            )  # HERE Z is now also returned
 
             # Update containers on host
             if prediction_outputs is not None:
                 prediction_outputs = distributed_concat(prediction_outputs)
             prediction_outputs_host = (
-                prediction_outputs if prediction_outputs_host is None else
-                nested_concat(prediction_outputs_host, prediction_outputs, padding_index=-100)
+                prediction_outputs
+                if prediction_outputs_host is None
+                else nested_concat(
+                    prediction_outputs_host, prediction_outputs, padding_index=-100
+                )
             )
 
             # Gather all tensors and put them back on the CPU if we have done enough accumulation steps.
-            if self.args.eval_accumulation_steps is not None and (step + 1) % self.args.eval_accumulation_steps == 0:
+            if (
+                self.args.eval_accumulation_steps is not None
+                and (step + 1) % self.args.eval_accumulation_steps == 0
+            ):
                 if prediction_outputs_host is not None:
                     prediction_outputs = nested_cpu(prediction_outputs_host)
                     all_prediction_outputs = (
-                        prediction_outputs if all_prediction_outputs is None else
-                        nested_concat(all_prediction_outputs, prediction_outputs, padding_index=-100)
+                        prediction_outputs
+                        if all_prediction_outputs is None
+                        else nested_concat(
+                            all_prediction_outputs,
+                            prediction_outputs,
+                            padding_index=-100,
+                        )
                     )
 
                 # Set back to None to begin a new accumulation
@@ -852,8 +924,11 @@ class Trainer:
         if prediction_outputs_host is not None:
             prediction_outputs = nested_cpu(prediction_outputs_host)
             all_prediction_outputs = (
-                prediction_outputs if all_prediction_outputs is None else
-                nested_concat(all_prediction_outputs, prediction_outputs, padding_index=-100)
+                prediction_outputs
+                if all_prediction_outputs is None
+                else nested_concat(
+                    all_prediction_outputs, prediction_outputs, padding_index=-100
+                )
             )
 
         # Number of samples
@@ -862,20 +937,23 @@ class Trainer:
         # Number of losses has been rounded to a multiple of batch_size and in a distributed training, the number of
         # samplers has been rounded to a multiple of batch_size, so we truncate.
         if all_prediction_outputs is not None:
-            all_prediction_outputs = nested_truncate(all_prediction_outputs, num_samples)
+            all_prediction_outputs = nested_truncate(
+                all_prediction_outputs, num_samples
+            )
 
-        images, weighted_loss, losses = all_prediction_outputs
+        images, weighted_loss, losses, z = all_prediction_outputs  # HERE Z
 
         # Metrics!
         if self.is_world_process_zero():
             if self.compute_metrics and all_prediction_outputs:
-                metrics = self.compute_metrics(images,
-                                               self.model.module,
-                                               weighted_loss,
-                                               losses,
-                                               dataset=eval_dataset,
-                                               split=metric_key_prefix,
-                                               )
+                metrics = self.compute_metrics(
+                    images,
+                    self.model.module,
+                    weighted_loss,
+                    losses,
+                    dataset=eval_dataset,
+                    split=metric_key_prefix,
+                )
             else:
                 metrics = {}
 
@@ -903,13 +981,17 @@ class Trainer:
         args = self.args
 
         # Build train dataloader.
-        print('In train')
+        print("In train")
         train_dataloader = self.get_train_dataloader()
-        print('Train loader successfully built')
+        print("Train loader successfully built")
         # Set up training control variables.
-        total_train_batch_size = args.train_batch_size * args.gradient_accumulation_steps * args.world_size
+        total_train_batch_size = (
+            args.train_batch_size * args.gradient_accumulation_steps * args.world_size
+        )
         assert isinstance(self.train_dataset, collections.abc.Sized)
-        num_update_steps_per_epoch = len(train_dataloader) // args.gradient_accumulation_steps
+        num_update_steps_per_epoch = (
+            len(train_dataloader) // args.gradient_accumulation_steps
+        )
         num_update_steps_per_epoch = max(num_update_steps_per_epoch, 1)
         if args.max_steps > 0:
             max_steps = args.max_steps
@@ -934,9 +1016,15 @@ class Trainer:
         logger.info("***** Running training *****")
         logger.info(f"  Num examples = {num_examples}")
         logger.info(f"  Num Epochs = {num_train_epochs}")
-        logger.info(f"  Instantaneous batch size per device = {args.per_device_train_batch_size}")
-        logger.info(f"  Total train batch size (w. parallel, distributed & accumulation) = {total_train_batch_size}")
-        logger.info(f"  Gradient Accumulation steps = {args.gradient_accumulation_steps}")
+        logger.info(
+            f"  Instantaneous batch size per device = {args.per_device_train_batch_size}"
+        )
+        logger.info(
+            f"  Total train batch size (w. parallel, distributed & accumulation) = {total_train_batch_size}"
+        )
+        logger.info(
+            f"  Gradient Accumulation steps = {args.gradient_accumulation_steps}"
+        )
         logger.info(f"  Total optimization steps = {max_steps}")
 
         self.state.epoch = 0
@@ -956,12 +1044,13 @@ class Trainer:
                 _, weighted_loss, losses = self.training_step(inputs)
 
                 if (step + 1) % args.gradient_accumulation_steps == 0 or (
-                        # last step in epoch but step is always smaller than gradient_accumulation_steps
-                        (step + 1) == steps_in_epoch <= args.gradient_accumulation_steps
+                    # last step in epoch but step is always smaller than gradient_accumulation_steps
+                    (step + 1)
+                    == steps_in_epoch
+                    <= args.gradient_accumulation_steps
                 ):
                     # Gradient clipping
                     if args.max_grad_norm is not None and args.max_grad_norm > 0:
-
                         if hasattr(self.optimizer, "clip_grad_norm"):
                             # Some optimizers (like the sharded optimizer) have a specific way to do gradient clipping
                             self.optimizer.clip_grad_norm(args.max_grad_norm)
@@ -987,7 +1076,9 @@ class Trainer:
                     self._maybe_log_save_evaluate(weighted_loss, losses, epoch_end)
 
         # Finished training.
-        logger.info("\n\nTraining completed. Do not forget to share your model on huggingface.co/models =)\n\n")
+        logger.info(
+            "\n\nTraining completed. Do not forget to share your model on huggingface.co/models =)\n\n"
+        )
         if args.load_best_model_at_end and self.state.best_model_checkpoint is not None:
             # Wait for everyone to get here so we are sure the model has been saved by process 0.
             dist.barrier()
@@ -996,7 +1087,9 @@ class Trainer:
                 f"Loading best model from {self.state.best_model_checkpoint} (score: {self.state.best_metric})."
             )
 
-            best_model_path = os.path.join(self.state.best_model_checkpoint, WEIGHTS_NAME)
+            best_model_path = os.path.join(
+                self.state.best_model_checkpoint, WEIGHTS_NAME
+            )
             if os.path.exists(best_model_path):
                 # We load the model state dict on the CPU to avoid an OOM error.
                 state_dict = torch.load(best_model_path, map_location="cpu")
@@ -1008,16 +1101,21 @@ class Trainer:
                     "on multiple nodes, you should activate `--save_on_each_node`."
                 )
 
-        metrics = speed_metrics("train", start_time, num_samples=num_train_samples, num_steps=self.state.max_steps)
+        metrics = speed_metrics(
+            "train",
+            start_time,
+            num_samples=num_train_samples,
+            num_steps=self.state.max_steps,
+        )
 
         self.log(metrics)
 
         return metrics
 
     def evaluate(
-            self,
-            eval_dataset: Optional[Dataset] = None,
-            metric_key_prefix: str = "eval",
+        self,
+        eval_dataset: Optional[Dataset] = None,
+        metric_key_prefix: str = "eval",
     ) -> Dict[str, float]:
         """
         Run evaluation and returns metrics.
@@ -1066,9 +1164,9 @@ class Trainer:
         return metrics
 
     def predict(
-            self,
-            test_dataset: Dataset,
-            metric_key_prefix: str = "test",
+        self,
+        test_dataset: Dataset,
+        metric_key_prefix: str = "test",
     ) -> Dict[str, float]:
         """
         Run prediction and returns predictions and potential metrics.

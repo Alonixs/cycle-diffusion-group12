@@ -53,18 +53,11 @@ class UnsupervisedTranslation(nn.Module):
             z = self.source_gan_wrapper.encode(image=original_image)
             img = self.target_gan_wrapper(z=z)
 
-        # Save latent space representation
-        print(
-            f"==================)n Original Image: {original_image} \n =================="
-        )
-        with open(f"z_test.data", "wb") as f:
-            pickle.dump(z, f)
-
         # Placeholders
         losses = dict()
         weighted_loss = torch.zeros_like(sample_id).float()
 
-        return (original_image, img), weighted_loss, losses
+        return (original_image, img), weighted_loss, losses, z  # HERE
 
     @property
     def device(self):
