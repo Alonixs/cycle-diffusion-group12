@@ -5,9 +5,10 @@ import torchvision.transforms as transforms
 from .model_utils import requires_grad
 from .gan_wrapper.get_gan_wrapper import get_gan_wrapper
 
+import pickle
+
 
 class UnsupervisedTranslation(nn.Module):
-
     def __init__(self, args):
         super(UnsupervisedTranslation, self).__init__()
 
@@ -19,10 +20,12 @@ class UnsupervisedTranslation(nn.Module):
         requires_grad(self.target_gan_wrapper, True)  # Otherwise, no trainable params.
 
         assert self.source_gan_wrapper.resolution == self.target_gan_wrapper.resolution
-        self.encode_transform = transforms.Compose([
-            transforms.Resize(self.source_gan_wrapper.resolution),
-            transforms.ToTensor()
-        ])
+        self.encode_transform = transforms.Compose(
+            [
+                transforms.Resize(self.source_gan_wrapper.resolution),
+                transforms.ToTensor(),
+            ]
+        )
 
     def forward(self, sample_id, class_label=None, original_image=None):
         # Eval mode for the source and target gan_wrapper.
@@ -41,12 +44,18 @@ class UnsupervisedTranslation(nn.Module):
             assert not getattr(self.source_gan_wrapper, "model_embedding_space", False)
             assert not getattr(self.target_gan_wrapper, "model_embedding_space", False)
             assert class_label is not None
-            z = self.source_gan_wrapper.encode(image=original_image, class_label=class_label)
+            z = self.source_gan_wrapper.encode(
+                image=original_image, class_label=class_label
+            )
             img = self.target_gan_wrapper(z=z, class_label=class_label)
         else:
             assert class_label is None
             z = self.source_gan_wrapper.encode(image=original_image)
             img = self.target_gan_wrapper(z=z)
+
+        # Save latent space representation
+        with open(f"z_test.data", "wb") as f:
+            pickle.dump(z, f)
 
         # Placeholders
         losses = dict()
