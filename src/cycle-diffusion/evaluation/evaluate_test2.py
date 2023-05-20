@@ -82,6 +82,7 @@ class Evaluator(object):
             fdir2=f_ref,
             batch_size=32,
         )
+
         fid_score = fid.compute_fid(
             fdir1=f_gen,
             fdir2=f_ref,

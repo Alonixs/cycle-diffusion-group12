@@ -68,6 +68,9 @@ def setup_wandb(training_args):
 
 
 def main():
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Device: {device}")
+
     # Get training_args and args.
     parser = HfArgumentParser((CustomTrainingArguments,))
     (training_args,) = parser.parse_args_into_dataclasses()
@@ -80,13 +83,21 @@ def main():
     # torch.use_deterministic_algorithms(True)
     # cudnn.deterministic = True
 
-    # Set up wandb.
-    wandb_run_dir = setup_wandb(training_args)
+    # NEW: additional arg to disable wandb logging completely
+    if not training_args.disable_wandb:
+        # Set up wandb.
+        wandb_run_dir = setup_wandb(training_args)
+    else:
+        wandb_run_dir = None
+        print("Wandb disabled.")
+
     # Setup output directory.
     os.makedirs(training_args.output_dir, exist_ok=True)
     args.output_dir = training_args.output_dir
 
-    print(f"======= Output dir: {training_args.output_dir} =======")
+    # New: add custom z name to args
+    args.custom_z_name = training_args.custom_z_name
+
     print(f"======= Args: =======")
     print(training_args)
 

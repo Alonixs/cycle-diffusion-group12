@@ -372,7 +372,8 @@ class Trainer:
         self.state.log_history.append(output)
 
         # wandb
-        wandb.log(logs)
+        if self.wandb_run_dir is not None:
+            wandb.log(logs)
 
     def is_local_process_zero(self) -> bool:
         """
@@ -839,15 +840,9 @@ class Trainer:
         self._prepare_inputs(inputs)
 
         with torch.no_grad():
-            images, weighted_loss, losses, z = self.model(**inputs)  # HERE
-            # images: tuple of image tensor, ___
-            print(f"====== z shape: {z.shape} ======")
-            print(f"Images len: {len(images)}")
-            print(f"Images 1: {images[0]}")
-            print(f"Images 2: {images[1]}")
-            print(f"Images 1 shape: {images.shape}")
+            images, weighted_loss, losses = self.model(**inputs)
 
-        return images, weighted_loss, losses, z  # HERE
+        return images, weighted_loss, losses
 
     def evaluation_loop(
         self,
@@ -885,9 +880,7 @@ class Trainer:
         # Main evaluation loop
         for step, inputs in tqdm(enumerate(dataloader)):
             # Prediction step
-            prediction_outputs = self.prediction_step(
-                inputs
-            )  # HERE Z is now also returned
+            prediction_outputs = self.prediction_step(inputs)
 
             # Update containers on host
             if prediction_outputs is not None:
@@ -941,7 +934,7 @@ class Trainer:
                 all_prediction_outputs, num_samples
             )
 
-        images, weighted_loss, losses, z = all_prediction_outputs  # HERE Z
+        images, weighted_loss, losses = all_prediction_outputs
 
         # Metrics!
         if self.is_world_process_zero():

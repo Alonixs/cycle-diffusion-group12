@@ -16,7 +16,6 @@ from ..lib.ddpm_ddim.utils.diffusion_utils import (
 from ..model_utils import requires_grad
 
 
-
 def prepare_ddpm_ddim(source_model_type, source_model_path):
     parser = argparse.ArgumentParser(description=globals()["__doc__"])
 
@@ -536,7 +535,8 @@ class DDPMDDIMWrapper(torch.nn.Module):
 
         return img
 
-    def encode(self, image, class_label=None):
+    def encode(self, image, class_label=None, custom_z_name=None):
+        """NEW: if we want to store the tensor, custom_z_name is passed."""
         # Eval mode for the generator.
         self.generator.eval()
 
@@ -606,7 +606,11 @@ class DDPMDDIMWrapper(torch.nn.Module):
             z = torch.stack(z_list, dim=1).view(bsz, -1)
             assert z.shape[1] == self.latent_dim
 
-        return z
+        # NEW additionally return the list of z's for each step
+        if custom_z_name:
+            return z, z_list
+        else:
+            return z
 
     def forward(self, z, class_label=None):
         # Eval mode for the generator.
