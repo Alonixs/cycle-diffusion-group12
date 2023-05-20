@@ -144,3 +144,10 @@ src/cycle-diffusion/wandb/*
 
 src/cycle-diffusion/stargan-v2/*
 src/taming-transformers/*
+src/cycle-diffusion/z_test.data
+src/taming-transformers
+src/cycle-diffusion/stargan-v2
+
+*.out
+*.pickle
+*.npy
