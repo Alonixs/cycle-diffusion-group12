@@ -98,6 +98,9 @@ def main():
     # New: add custom z name to args
     args.custom_z_name = training_args.custom_z_name
 
+    # New: save intermediary results of time steps when encoding an image
+    args.save_time_steps = training_args.save_time_steps
+
     print(f"======= Args: =======")
     print(training_args)
 
