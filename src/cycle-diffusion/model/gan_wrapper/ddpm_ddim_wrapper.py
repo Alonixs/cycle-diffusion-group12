@@ -4,6 +4,7 @@ import yaml
 import numpy as np
 import torch
 import torchvision.transforms as transforms
+import matplotlib.pyplot as plt
 import torch.nn.functional as F
 
 from ..lib.ddpm_ddim.models.ddpm.diffusion import DDPM
@@ -535,7 +536,7 @@ class DDPMDDIMWrapper(torch.nn.Module):
 
         return img
 
-    def encode(self, image, class_label=None, custom_z_name=None):
+    def encode(self, image, class_label=None, custom_z_name=None, save_time_steps=False):
         """NEW: if we want to store the tensor, custom_z_name is passed."""
         # Eval mode for the generator.
         self.generator.eval()
@@ -569,6 +570,12 @@ class DDPMDDIMWrapper(torch.nn.Module):
                 ]
 
                 xt = xT
+
+                # NEW, save intermediary images at save_at_steps
+                intermediary_imgs = []
+                save_at_steps = list(range(848, 800, -5))
+                save_at_steps.extend([700, 600, 500, 100, 0])
+
                 for it, (i, j) in enumerate(
                     zip(reversed(seq_inv), reversed(seq_inv_next))
                 ):
@@ -600,17 +607,28 @@ class DDPMDDIMWrapper(torch.nn.Module):
                         print(it, (eps**2).sum().item())
                         xt = xt_next
                         z_list.append(eps)
+
+                        # NEW, save image of timestep it
+                        if save_time_steps and it in save_at_steps:
+                            temp_img = xt.cpu()#.numpy()
+                            temp_img = temp_img.squeeze().permute(1, 2, 0).numpy()
+                            temp_img = (temp_img-np.min(temp_img))/(np.max(temp_img)-np.min(temp_img))
+                            intermediary_imgs.append((it, temp_img))
                     else:
                         break
 
             z = torch.stack(z_list, dim=1).view(bsz, -1)
             assert z.shape[1] == self.latent_dim
 
+        extra_data = dict()
         # NEW additionally return the list of z's for each step
         if custom_z_name:
-            return z, z_list
-        else:
-            return z
+            extra_data["z_list"] = z_list
+        # NEW return the list of (it, image) tuples of intermediary xt's
+        if save_time_steps:
+            extra_data["imgs"] = intermediary_imgs
+        
+        return z, extra_data
 
     def forward(self, z, class_label=None):
         # Eval mode for the generator.

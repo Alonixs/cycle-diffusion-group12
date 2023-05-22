@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torchvision.transforms as transforms
 import numpy as np
+import matplotlib.pyplot as plt
 import os
 import pickle
 
@@ -53,8 +54,9 @@ class UnsupervisedTranslation(nn.Module):
             img = self.target_gan_wrapper(z=z, class_label=class_label)
         else:
             assert class_label is None
-            z, z_list = self.source_gan_wrapper.encode(
-                image=original_image, custom_z_name=self.args.custom_z_name
+            z, extra_data = self.source_gan_wrapper.encode(
+                image=original_image, custom_z_name=self.args.custom_z_name,
+                save_time_steps=self.args.save_time_steps
             )  # NEW, pass custom_z_name to get intermediate z's
             img = self.target_gan_wrapper(z=z)
 
@@ -64,6 +66,7 @@ class UnsupervisedTranslation(nn.Module):
 
         # NEW Save z to file, if custom_z_name is set
         if self.args.custom_z_name:
+            z_list = extra_data["z_list"]
             # check first if output file exists
             z_output_file_name = f"{self.args.output_dir}/{self.args.custom_z_name}_0"
 
@@ -83,6 +86,20 @@ class UnsupervisedTranslation(nn.Module):
             print(
                 f"====== Saved final z/z_list to {z_output_file_name}.npy/.pickle ========="
             )
+
+        if self.args.save_time_steps:
+            temp_imgs = extra_data["imgs"]
+            imgs_output_dir = f"{self.args.output_dir}/timesteps_img"
+            imgs_output_dir = os.path.join(os.path.realpath("."), imgs_output_dir)
+
+            dir_nr = 0
+            while os.path.isdir(f"{imgs_output_dir}_{dir_nr}"):
+                dir_nr += 1
+            imgs_output_dir = f"{imgs_output_dir}_{dir_nr}"
+            os.mkdir(imgs_output_dir)
+
+            for (it, temp_img) in temp_imgs:
+                plt.imsave(f"{imgs_output_dir}/{it}.png", temp_img)
 
         return (original_image, img), weighted_loss, losses
 

@@ -202,7 +202,7 @@ class Trainer:
         )
 
         if self.args.verbose and self.is_world_process_zero():
-            print(self.model)
+            # print(self.model)
 
             # Setup output directory.
             if self.args.overwrite_output_dir:
