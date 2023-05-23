@@ -112,7 +112,12 @@ def main():
     visualizer = get_visualizer(args.visualization.visualizer_program)(args)
 
     # Initialize model.
+
+    # NEW, add seed to args so that model can reset the seed when in the encoding stage
+    setattr(args, "seed", training_args.seed)
+
     model = get_model(args.model.name)(args)
+    
 
     # Initialize Trainer.
     trainer = Trainer(

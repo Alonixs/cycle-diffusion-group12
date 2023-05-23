@@ -14,6 +14,9 @@ class UnsupervisedTranslation(nn.Module):
     def __init__(self, args):
         super(UnsupervisedTranslation, self).__init__()
 
+        for arg in args:
+            print(arg)
+
         # Set up source and target gan_wrapper
         self.source_gan_wrapper = get_gan_wrapper(args.gan)
         self.target_gan_wrapper = get_gan_wrapper(args.gan, target=True)
@@ -54,9 +57,10 @@ class UnsupervisedTranslation(nn.Module):
             img = self.target_gan_wrapper(z=z, class_label=class_label)
         else:
             assert class_label is None
+            
             z, extra_data = self.source_gan_wrapper.encode(
                 image=original_image, custom_z_name=self.args.custom_z_name,
-                save_time_steps=self.args.save_time_steps
+                save_time_steps=self.args.save_time_steps, seed=self.args.seed
             )  # NEW, pass custom_z_name to get intermediate z's
             img = self.target_gan_wrapper(z=z)
 

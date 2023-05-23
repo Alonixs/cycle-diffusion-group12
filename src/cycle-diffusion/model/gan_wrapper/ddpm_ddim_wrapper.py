@@ -7,6 +7,9 @@ import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
 import torch.nn.functional as F
 
+from transformers import set_seed
+
+
 from ..lib.ddpm_ddim.models.ddpm.diffusion import DDPM
 from ..lib.ddpm_ddim.models.improved_ddpm.script_util import i_DDPM
 from ..lib.ddpm_ddim.utils.diffusion_utils import (
@@ -536,10 +539,14 @@ class DDPMDDIMWrapper(torch.nn.Module):
 
         return img
 
-    def encode(self, image, class_label=None, custom_z_name=None, save_time_steps=False):
+    def encode(self, image, class_label=None, custom_z_name=None, save_time_steps=False, seed=None):
         """NEW: if we want to store the tensor, custom_z_name is passed."""
         # Eval mode for the generator.
         self.generator.eval()
+
+        # NEW, reset seed at the start of each encoding
+        if seed is not None:
+            set_seed(seed)
 
         if (self.t_0 + 1) % self.custom_steps == 0:
             seq_inv = range(0, self.t_0 + 1, (self.t_0 + 1) // self.custom_steps)
