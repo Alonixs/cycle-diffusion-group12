@@ -40,22 +40,10 @@ class Evaluator(object):
 
         # Add metrics here.
         f_gen = os.path.join(self.meta_args.output_dir, 'temp_gen')
-        f_ref = os.path.join(self.meta_args.output_dir, 'temp_ref')
         if os.path.exists(f_gen):
             os.remove(f_gen)
         os.mkdir(f_gen)
-        if os.path.exists(f_ref):
-            os.remove(f_ref)
-        os.mkdir(f_ref)
-
-        # Resize reference images.
-        root_dir = './stargan-test/data/test/dog'
-        for idx, file_name in tqdm(enumerate(list_image_files_recursively(root_dir))):
-            ref_img = Image.open(file_name)
-            assert ref_img.size == (512, 512)
-            ref_img = self.ref_transform(ref_img)
-            save_image(os.path.join(f_ref, '{}.png'.format(idx)), ref_img)
-
+ 
         n = len(images)
         all_psnr, all_ssim, l2 = 0, 0, 0
         idx = 0
@@ -78,21 +66,10 @@ class Evaluator(object):
             save_image(os.path.join(f_gen, '{}.png'.format(idx)), img)
             idx += 1
 
-        kid_score = fid.compute_kid(
-            fdir1=f_gen, fdir2=f_ref,
-            batch_size=32,
-        )
-        fid_score = fid.compute_fid(
-            fdir1=f_gen, fdir2=f_ref,
-            batch_size=32,
-        )
-
         summary = {
             "psnr": all_psnr / n,
             "ssim": all_ssim / n,
-            "l2": l2 / n,
-            "kid": kid_score,
-            "fid": fid_score,
+            "l2": l2 / n
         }
 
         return summary
