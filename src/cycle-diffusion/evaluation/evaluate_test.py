@@ -39,7 +39,7 @@ class Evaluator(object):
         assert split in ['eval', 'test']
 
         # Add metrics here.
-        f_gen = os.path.join(self.meta_args.output_dir, 'temp_gen')
+        f_gen = os.path.join(self.meta_args.output_dir, 'gen_imgs')
         if os.path.exists(f_gen):
             os.remove(f_gen)
         os.mkdir(f_gen)

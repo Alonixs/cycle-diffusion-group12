@@ -2,9 +2,10 @@ import torch
 import torch.nn as nn
 import torchvision.transforms as transforms
 import numpy as np
-import matplotlib.pyplot as plt
 import os
 import pickle
+from torchvision import utils
+
 
 from .model_utils import requires_grad
 from .gan_wrapper.get_gan_wrapper import get_gan_wrapper
@@ -13,9 +14,6 @@ from .gan_wrapper.get_gan_wrapper import get_gan_wrapper
 class UnsupervisedTranslation(nn.Module):
     def __init__(self, args):
         super(UnsupervisedTranslation, self).__init__()
-
-        for arg in args:
-            print(arg)
 
         # Set up source and target gan_wrapper
         self.source_gan_wrapper = get_gan_wrapper(args.gan)
@@ -34,7 +32,7 @@ class UnsupervisedTranslation(nn.Module):
 
         self.args = args
 
-    def forward(self, sample_id, class_label=None, original_image=None):
+    def forward(self, sample_id, class_label=None, original_image=None, file_name=None):
         # Eval mode for the source and target gan_wrapper.
         self.source_gan_wrapper.eval()
         self.target_gan_wrapper.eval()
@@ -60,10 +58,10 @@ class UnsupervisedTranslation(nn.Module):
             
             z, extra_data = self.source_gan_wrapper.encode(
                 image=original_image, custom_z_name=self.args.custom_z_name,
-                save_time_steps=self.args.save_time_steps, seed=self.args.seed
+                seed=self.args.seed
             )  # NEW, pass custom_z_name to get intermediate z's
             img = self.target_gan_wrapper(z=z)
-
+         
         # Placeholders
         losses = dict()
         weighted_loss = torch.zeros_like(sample_id).float()
@@ -91,20 +89,13 @@ class UnsupervisedTranslation(nn.Module):
                 f"====== Saved final z/z_list to {z_output_file_name}.npy/.pickle ========="
             )
 
-        if self.args.save_time_steps:
-            temp_imgs = extra_data["imgs"]
-            imgs_output_dir = f"{self.args.output_dir}/timesteps_img"
-            imgs_output_dir = os.path.join(os.path.realpath("."), imgs_output_dir)
+        if self.args.save_images and file_name is not None:
+            img_name = os.path.basename(file_name[0])
+            output_path = os.path.join(self.args.output_dir, img_name.replace('cat', 'gen_dog'))
 
-            dir_nr = 0
-            while os.path.isdir(f"{imgs_output_dir}_{dir_nr}"):
-                dir_nr += 1
-            imgs_output_dir = f"{imgs_output_dir}_{dir_nr}"
-            os.mkdir(imgs_output_dir)
-
-            for (it, temp_img) in temp_imgs:
-                plt.imsave(f"{imgs_output_dir}/{it}.png", temp_img)
-
+            img = img.clamp(0, 1)
+            utils.save_image(img, output_path)
+          
         return (original_image, img), weighted_loss, losses
 
     @property

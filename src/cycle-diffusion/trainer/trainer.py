@@ -969,6 +969,36 @@ class Trainer:
             metrics = None
 
         return metrics, num_samples
+    
+    def evaluation_loop_v2(
+        self,
+        dataloader: DataLoader,
+        description: str,
+        metric_key_prefix: str = "eval",
+    ) -> Tuple[Dict[str, float], int]:
+        """
+        Prediction/evaluation loop, shared by :obj:`Trainer.evaluate()` and :obj:`Trainer.predict()`.
+
+        Works both with or without labels.
+        """
+
+        batch_size = dataloader.batch_size
+
+        logger.info(f"***** Running {description} *****")
+        if isinstance(dataloader.dataset, collections.abc.Sized):
+            logger.info(f"  Num examples = {len(dataloader.dataset)}")
+        else:
+            logger.info("  Num examples: Unknown")
+        logger.info(f"  Batch size = {batch_size}")
+
+        self.model.eval()
+
+        # Main evaluation loop
+        for _step, inputs in tqdm(enumerate(dataloader)):
+            # Prediction step
+            _prediction_outputs = self.prediction_step(inputs)
+
+        return None, None
 
     def train(self):
         args = self.args
@@ -1134,12 +1164,19 @@ class Trainer:
         eval_dataloader = self.get_eval_dataloader(eval_dataset)
         start_time = time.time()
 
-        eval_loop = self.evaluation_loop
+        if self.args.save_images:
+            eval_loop = self.evaluation_loop_v2
+        else:
+            eval_loop = self.evaluation_loop
+        
         metrics, num_samples = eval_loop(
             eval_dataloader,
             description="eval",
             metric_key_prefix=metric_key_prefix,
         )
+
+        if metrics is None:
+            return None
 
         if self.is_world_process_zero():
             total_batch_size = self.args.eval_batch_size * self.args.world_size

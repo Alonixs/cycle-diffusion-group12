@@ -7,7 +7,7 @@ class CustomTrainingArguments(TrainingArguments):
     cfg: str = None
     custom_z_name: str = None  # NEW
     disable_wandb: bool = False  # NEW
-    save_time_steps: bool = False # NEW
+    save_images: bool = False # NEW
 
     verbose: bool = field(
         default=False,

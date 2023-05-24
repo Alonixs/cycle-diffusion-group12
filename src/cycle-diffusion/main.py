@@ -99,13 +99,14 @@ def main():
     args.custom_z_name = training_args.custom_z_name
 
     # New: save intermediary results of time steps when encoding an image
-    args.save_time_steps = training_args.save_time_steps
+    args.save_images = training_args.save_images
 
     print(f"======= Args: =======")
     print(training_args)
 
     # Build dataset splits.
     dataset_splits = get_dataset_splits(args)
+
     # Initialize evaluator.
     evaluator = get_evaluator(args.evaluation.evaluator_program)(args)
     # Initialize visualizer.
@@ -161,10 +162,12 @@ def main():
     metrics = trainer.evaluate(
         metric_key_prefix="eval",
     )
-    metrics["eval_samples"] = len(dataset_splits["dev"])
 
-    trainer.log_metrics("eval", metrics)
-    trainer.save_metrics("eval", metrics)
+    if metrics is not None:
+        metrics["eval_samples"] = len(dataset_splits["dev"])
+
+        trainer.log_metrics("eval", metrics)
+        trainer.save_metrics("eval", metrics)
 
     # Test
     if training_args.do_predict:
