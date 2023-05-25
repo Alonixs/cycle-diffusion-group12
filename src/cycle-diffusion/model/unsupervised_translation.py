@@ -55,47 +55,40 @@ class UnsupervisedTranslation(nn.Module):
             img = self.target_gan_wrapper(z=z, class_label=class_label)
         else:
             assert class_label is None
-            
+
             z, extra_data = self.source_gan_wrapper.encode(
-                image=original_image, custom_z_name=self.args.custom_z_name,
-                seed=self.args.seed
+                image=original_image,
+                custom_z_name=self.args.custom_z_name,
+                seed=self.args.seed,
             )  # NEW, pass custom_z_name to get intermediate z's
             img = self.target_gan_wrapper(z=z)
-         
+
         # Placeholders
         losses = dict()
         weighted_loss = torch.zeros_like(sample_id).float()
 
-        # NEW Save z to file, if custom_z_name is set
-        if self.args.custom_z_name:
-            z_list = extra_data["z_list"]
-            # check first if output file exists
-            z_output_file_name = f"{self.args.output_dir}/{self.args.custom_z_name}_0"
-
-            file_nr = 0
-            while os.path.isfile(f"{z_output_file_name}.npy"):
-                # generate new file name
-                file_nr += 1
-                z_output_file_name = z_output_file_name[:-1] + str(file_nr)
-
-            np.save(
-                z_output_file_name,
-                z.cpu().numpy(),
-            )
-
-            with open(f"{z_output_file_name}_z_list.pickle", "wb") as f:
-                pickle.dump(z_list, f)
-            print(
-                f"====== Saved final z/z_list to {z_output_file_name}.npy/.pickle ========="
-            )
-
+        # NEW
         if self.args.save_images and file_name is not None:
             img_name = os.path.basename(file_name[0])
-            output_path = os.path.join(self.args.output_dir, img_name.replace('cat', 'gen_dog'))
+            output_path = os.path.join(
+                self.args.output_dir, img_name.replace("cat", "gen_dog")
+            )
 
             img = img.clamp(0, 1)
             utils.save_image(img, output_path)
-          
+
+        # NEW Save z to file, if custom_z_name is set too
+        if self.args.save_images and file_name is not None and self.args.custom_z_name:
+            img_name = os.path.basename(file_name[0])
+            z_name = str("z_" + img_name + ".npy")
+            output_path = os.path.join(self.args.output_dir, z_name)
+
+            np.save(
+                output_path,
+                z.cpu().numpy(),
+            )
+            print(f"====== Saved z to {output_path} =========")
+
         return (original_image, img), weighted_loss, losses
 
     @property
