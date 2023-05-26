@@ -43,7 +43,8 @@ class DevDataset(Dataset):
 
     def __init__(self, args, meta_args, raw_datasets, cache_root):
 
-        self.root_dir = './exp1_data/cat'
+        self.root_dir = f"source_exp1/cat_{meta_args.img_type}"
+        print(self.root_dir)
         self.transform = transforms.Compose([
             transforms.Resize(256, interpolation=INTERPOLATION),  # 512 -> 256
             transforms.ToTensor()

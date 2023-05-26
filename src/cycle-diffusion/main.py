@@ -101,8 +101,11 @@ def main():
     # New: save intermediary results of time steps when encoding an image
     args.save_images = training_args.save_images
 
-    print(f"======= Args: =======")
-    print(training_args)
+    # New: type of source image (org, low or high) with regards to experiment 1
+    args.img_type = training_args.img_type
+
+    # print(f"======= Args: =======")
+    # print(training_args)
 
     # Build dataset splits.
     dataset_splits = get_dataset_splits(args)
@@ -117,8 +120,7 @@ def main():
     # NEW, add seed to args so that model can reset the seed when in the encoding stage
     setattr(args, "seed", training_args.seed)
 
-    model = get_model(args.model.name)(args)
-    
+    model = get_model(args.model.name)(args)    
 
     # Initialize Trainer.
     trainer = Trainer(
