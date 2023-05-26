@@ -138,7 +138,6 @@ Temporary Items
 src/cycle-diffusion/ckpts/*
 src/cycle-diffusion/wandb/*
 
-*.png
 *.arrow
 *.json
 
