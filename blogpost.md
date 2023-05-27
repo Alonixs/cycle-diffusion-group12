@@ -1,12 +1,5 @@
--   _Introduction: An analysis of the paper and its key components. Think about it as a nicely formatted review as you would see on OpenReview.net. It should contain one paragraph of related work as well._
--   _Exposition of its weaknesses/strengths/potential which triggered your group to come up with a response._
--   _Describe your novel contribution._
--   _Results of your work (link that part with the code in the jupyter notebook)_
--   _Conclude_
--   _Close the notebook with a description of each student's contribution._
-
 # Introduction:
-Our research project aims to investigate the paper "Unifying Diffusion Models’ Latent Space, With Applications To Cyclediffusion And Guidance", written by Wu & De la Torre (2022). This paper proposes an alternative approach to the formulation of the latent space in diffusion models, which are instrumental in generative modeling, particularly in text-to-image models. Rather than using a sequence of gradually denoised images as the latent code, the authors propose using a Gaussian formulation, similar to the latent space used in Generative Adversarial Networks (GANs), Variational Autoencoders (VAEs), and normalizing flows. They also propose a DPM-Encoder, which can map images to this latent space.
+Our research project aims to investigate the paper "Unifying Diffusion Models’ Latent Space, With Applications To Cyclediffusion And Guidance"  ([Wu & De la Torre, 2022](https://arxiv.org/abs/2210.05559)). This paper proposes an alternative approach to the formulation of the latent space in diffusion models, which are instrumental in generative modeling, particularly in text-to-image models. Rather than using a sequence of gradually denoised images as the latent code, the authors propose using a Gaussian formulation, similar to the latent space used in Generative Adversarial Networks (GANs), Variational Autoencoders (VAEs), and normalizing flows. They also propose a DPM-Encoder, which can map images to this latent space.
 
 The paper presents two main findings from this new formulation. First, they observe that a common latent space appears when two diffusion models are independently trained on related domains. This led to the proposal of CycleDiffusion, a method for unpaired image-to-image translation. In experiments, CycleDiffusion outperformed previous methods based on GANs or diffusion models. When applied to large-scale text-to-image diffusion models, CycleDiffusion enabled the creation of zero-shot image-to-image editors.
 
@@ -15,13 +8,11 @@ Second, the authors found that the new formulation allows for the guidance of pr
 ## Related work:
 Generative models, specifically Generative Adversarial Networks (GANs) and CycleGANs, have been the foundation for many advancements in image synthesis and translation tasks. GANs, as proposed by Goodfellow et al., offer a way to generate artificial data that is similar to some given real data. They have been used extensively in image synthesis, style transfer, and super-resolution among other applications. However, GANs often suffer from training instability and mode collapse.
 
-CycleGANs, introduced by Zhu et al., provide an effective solution for unpaired image-to-image translation by learning to translate images from one domain to another and vice versa. Despite their success, CycleGANs might produce artifacts in the translated images due to the unsupervised nature of the learning process.
+CycleGANs, introduced by [Zhu et al., 2017](https://arxiv.org/abs/1703.10593), provide an effective solution for unpaired image-to-image translation by learning to translate images from one domain to another and vice versa. Despite their success, CycleGANs might produce artifacts in the translated images due to the unsupervised nature of the learning process.
 
 Diffusion models, on the other hand, propose a different approach to generative modeling. Instead of learning a direct mapping from a latent space to a data distribution, diffusion models learn to gradually transform a simple noise distribution into a complex data distribution. However, their use in image-to-image translation tasks has been limited.
 
-The work by Khrulkov & Oseledets and Su et al. bring deterministic diffusion probabilistic models (DPMs) into the spotlight by introducing an optimal transport framework. However, these works focus on deterministic DPMs and do not provide insights into the latent space of stochastic DPMs, which this paper investigates. This paper extends the capabilities of diffusion models and brings them in line with the versatility of GANs and CycleGANs, while addressing the limitations of previous methods.
-
-ADD SOME ADDITIONAL PAPERS THAT WE USE OURSELVES
+The work by [Khrulkov & Oseledets, 2022](https://arxiv.org/abs/2202.07477) and [Su et al., 2022](https://arxiv.org/abs/2203.08382) bring deterministic diffusion probabilistic models (DPMs) into the spotlight by introducing an optimal transport framework. However, these works focus on deterministic DPMs and do not provide insights into the latent space of stochastic DPMs, which this paper investigates. This paper extends the capabilities of diffusion models and brings them in line with the versatility of GANs and CycleGANs, while addressing the limitations of previous methods.
 
 ## Methods: 
 The paper presents a novel methodological approach by reformulating the latent space of diffusion probabilistic models (DPMs). The central premise behind this reformulation is to provide a unified perspective on pre-trained generative models, thereby potentially enhancing their application and efficacy.
@@ -57,16 +48,21 @@ Given the aforementioned weaknesses of the paper, the research questions that we
 2. Explore limits of the method, and the influence of the prompt: examine the feasibility of obtaining diverse outputs using similar prompts and investigate the factors affecting the success rate of generating non-similar images. We will analyze the limitations of the current methodology and evaluate the role of the input prompt in achieving the desired outcomes.
 
 # Novel contributions:
-The further research that we will do in this project will be answering the previously mentioned research questions. Additionally, the reproduction of their original code will also be performed to increase the quality of the research, but omitting the training of the models since that would require too much computing power.
+The further research that we have done in this project has been answering the previously mentioned research questions. Additionally, the reproduction of their original code has also been performed to increase the quality of the research, but omitting the training of the models since that would require too much computing power.
 
 ## Methodology:
 
 ### Encoding of high-frequency components
-The point of this research question is understanding which aspects of an image are the most important for the encoder. Our hypothesis is that high-frequency components are the most important (corners, edges). In order to test this, we will take an image and get two different versions of it: in one we will apply a high pass filter (so it will only have high-frequency components), and in the other a low pass filter. We will then take the three images (the two edited images and the original), and encode them. If the encoded high-frequency image is more similar to the original encoded image than the encoded low-frequency image, it will mean that the high-frequency components of an image are the most relevant for the encoder. 
+The point of this research question is understanding which aspects of an image are the most important for the encoder. Our hypothesis is that high-frequency components are the most important (corners and edges). In order to test this, our method is to take an image and get two different versions of it: in one we apply a high pass filter (so it will only have high-frequency components), and in the other a low pass filter. Then we take the three images (the two edited images and the original), and encode them. If the encoded high-frequency image is more similar to the original encoded image than the encoded low-frequency image, it will mean that the high-frequency components of an image are the most relevant for the encoder. 
 
-The images will be transformed to the frequency domain with the Fast Fourier Transform (FFT), the frenquency filter will be applied, and then the images will be converted back to pixel domain with the Inverse Fast Fourier Transform (IFFT). This will ensure that the encoder is given the same type of image it is used to. 
+The images are transformed to the frequency domain with the Fast Fourier Transform (FFT), the frequency filter is applied, and then the images are converted back to pixel domain with the Inverse Fast Fourier Transform (IFFT). This will ensure that the encoder is given the same type of image it is used to. The frequency filter is a circle with a given radius (the value of which can be modified to change the aggressiveness of the filter), and some gaussian blur added to it, in order to make the filtered images more smooth. 
 
-Finally, besides comparing the latent spaces of the original and edited images, we will also compare the outputted images after they are decoded, just to be sure that the differences between high-pass and low-pass filtered images are the same. 
+This function is called [pass_filter](demos/RQ1_1.ipynb), and the best values for its radius have been found to be 10 for the high-pass filter and 5 for the low-pass filter. This means that all the frequencies between the radius 5 to 10 are neither on the high-pass nor the low-pass images, but this should not necessarily be a problem since we want to compare the extremes of the frequency domain. 
+
+The format of the encoded latent space was found to be hard to compare: it is a long vector, but cosine similarity and other metrics were not useful in this case since we want to compare human visual perception. Thus, another way of comparing the latent spaces has been used: a decoder is used to decode the latent spaces of all three images, and the resulting generated images are compared to see which generated images (high and low frequency) are more similar to the original generated image. The decoder is deterministic, so the comparison of the generated images can be assumed to be equal to the comparison of the latent spaces. 
+
+The comparison is done with a metric, since visual comparison can be subjective and unreliable. The used metric is SSIM, the same metric that is used in the original paper, since it is much better correlated with human visual perception ([Wang et al., 2004](https://www.cns.nyu.edu/pub/lcv/wang03-preprint.pdf)) than other numeric metrics such as mean squared error (MSE) or peak signal-to-noise ratio (PSNR). It takes into account both the structural information and the pixel values of the images, incorporating three main components: luminance, contrast, and structure.
+
 
 ### Steering the noise
 
@@ -91,6 +87,78 @@ Through this investigation, we aim to gain insights into the behavior of the lat
 
 # Results: 
 
+## Encoding of high-frequency components
+The experiments have been carried out following the previously explained methodology. In total, a batch of 50 cat pictures from the database used in the original paper have been studied. As formerly said, for each of these images two new versions have been rendered:
+
+![](blogpost_results/output1.png)
+
+These three versions have been encoded, and then decoded with a decoder trained on dogs.
+
+The resulting generated images have the following form:
+
+![](blogpost_results/output2.png)
+![](blogpost_results/output3.png)
+![](blogpost_results/output4.png)
+
+As one can observe, each image has been modified to adjust the decoder image “into” the input image. Nevertheless, it is clear that this has more or less realistic results depending on the input: the decoded high frequency images keep having most of their characteristics (odd color combinations and sharp edges), whereas the low frequency images seem to lead to the most realistic results. 
+
+The SSIM metric has been used to compare these images with each other (in pairs). The most relevant comparison is that of the generated dog (from the source image) with the generated high or low frequency images: we are comparing the difference between generating an image from the original latent space, and generating one from a (indirectly) modified latent space. The resulting statistics for the comparisons in all generated images for the original batch of 50 images are the following:
+
+|     SSIM Score    | Mean   | Standard Deviation | Min                | Max                |
+|------------------------------------------|--------|--------------------|--------------------|--------------------|
+|  Generated vs High Pass      | 0.2347 | 0.0744             | 0.1162  | 0.4197 |
+| Generated vs Low Pass       | 0.5364 | 0.0958             | 0.3215 | 0.7048 |
+
+This can be more clearly visualized with the following violin plots:
+
+![](blogpost_results/output5.png)
+
+There is a clear difference in similarity between the generated image with high pass frequency filtering and low pass frequency filtering. Furthermore, it is also worth mentioning that the standard deviations are in similar ranges for both comparisons. 
+
+The nature of the decoder is to merge its image (a dog in this case) with the input (the original and edited versions of cats). The result, as seen from the statistics, is that images generated from low frequency cats are more similar to the normal generated images. This means that it is easier for the decoder to merge its image with a low frequency image than a high frequency image. 
+
+The reason behind this is that the low frequency image is more similar to noise, so there is not much information to begin with, and the decoder can easily merge it with its image. On the other hand, the high frequency images have more information, so there are more constraints and the decoder struggles to merge the images. 
+
+This can be further proven by comparing the similarity between the original cat and the low frequency generated dog, and the original cat and the normal generated dog. The statistics are the following:
+| SSIM Score     | Mean   | Standard Deviation | Min                | Max                |
+|----------------------|--------|--------------------|--------------------|--------------------|
+| Original cats vs generated low pass filtered dog | 0.3317 | 0.0883             | 0.1233| 0.5212 |
+| Original cats vs generated dog                  | 0.5172 | 0.0509             | 0.4295| 0.6251  |
+
+These can be visualized with a violin plot:
+
+![](blogpost_results/output6.png)
+
+The original cat is more similar to the normal generated dog than to the low frequency generated dog. Since the low frequency cat image has less information than both the original cat and the high frequency cat, it is easier for the decoder to put its dog image on top of it, and thus the resulting image is more similar to a dog than the original cat. 
+
+From this explanation for the difference in similarities, it can be deduced that the higher frequency components of an image are more important, and therefore more predominant in the latent space of an image. 
+
+## Steering the noise
+
 # Conclusion:
 
 # Student contributions:
+Alon Shilo
+- Worked on the first research question, together with Philip and Quim. 
+- Helped set up the dependency notebook with Francesco.
+- Implemented low/high pass filter for our experiments.
+- Worked on the pipeline of our notebook, which consists of 3 different experiments for comparing images with the SSIM metric.
+- Structured the github repo and cleaned some of it.
+
+
+Dionne Gantzert
+
+
+Francesco Tinner
+
+
+Philip Schutte
+- Worked on the first research question, together with Alon and Quim.
+- Investigated the source code of the CycleDiffusion paper and implemented the necessary changes in order to run our own experiments.
+
+
+Quim Serra Faber
+- Worked on the first research question, together with Philip and Alon. 
+- Implemented low/high pass filter for our experiments.
+- Wrote the general parts of the blogpost
+- Studied and reported the results of the first research question in the blogpost
