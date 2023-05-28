@@ -40,15 +40,13 @@ Additionally, the limitations of the method have not been thoroughly explored, s
 
 ## Research questions:
 Given the aforementioned weaknesses of the paper, the research questions that we will answer in this project are the following:
+- Are only high-frequency components being encoded?
+- What is the impact of image transformations on the latent space?
 
-1. Explore semantic variability of the encoded seed.
-   - a. Are only high-frequency components being encoded?
-   - b. Does steering at different levels of noise result in different changes in the semantics?
-
-2. Explore limits of the method, and the influence of the prompt: examine the feasibility of obtaining diverse outputs using similar prompts and investigate the factors affecting the success rate of generating non-similar images. We will analyze the limitations of the current methodology and evaluate the role of the input prompt in achieving the desired outcomes.
+These two questions should help us explore the semantic variability of the encoded seed.
 
 # Novel contributions:
-The further research that we have done in this project has been answering the previously mentioned research questions. Additionally, the reproduction of their original code has also been performed to increase the quality of the research, but omitting the training of the models since that would require too much computing power.
+The further research that we have done in this project has been answering the previously mentioned research questions. For this purpose, we have modified the source code provided by the authors of the paper and created demos in the form of Jupyter notebooks that demonstrate our experiments.
 
 ## Methodology:
 
@@ -64,7 +62,7 @@ The format of the encoded latent space was found to be hard to compare: it is a 
 The comparison is done with a metric, since visual comparison can be subjective and unreliable. The used metric is SSIM, the same metric that is used in the original paper, since it is much better correlated with human visual perception ([Wang et al., 2004](https://www.cns.nyu.edu/pub/lcv/wang03-preprint.pdf)) than other numeric metrics such as mean squared error (MSE) or peak signal-to-noise ratio (PSNR). It takes into account both the structural information and the pixel values of the images, incorporating three main components: luminance, contrast, and structure.
 
 
-### Steering the noise
+### Impact of Image Transformations
 
 Our contribution consists of a detailed analysis of the capabilities of the DPM-Encoder used in the task of unpaired image to image translation. The aim of this task is to generate a new image $\hat{x}$ from an input image $x$ that is very similar to the input image, but has a different domain.  The CycleDiffusion framework involves encoding and decoding images through a shared latent space. The latent space, denoted as z in the CycleDiffusion model, can be defined as follows:
 $z \sim \text{DPMEnc}(z|x, G_1),\hat{x} = G_2(z)$
@@ -74,18 +72,26 @@ $x_1, ..., x_{T-1}, x_T \sim q(x_{1:T}|x_0), \epsilon_t = (x_{t-1} - \mu_T(x_t, 
 
 $z := (x_t \oplus \epsilon_T \oplus ... \oplus \epsilon_2 \oplus \epsilon_1)$
 
+Our investigation focuses on examining the impact of the input image $x$ on the corresponding latent code $z$. We do this for two different experiments. Experiment 1 focuses on the impact on the latent code $z$ by horizontally flipping the image $x$. Experiment 2 focuses on the impact on the latent code $z$ by rotating the image $x$ by various angles.
 
-We investigate the influence of the latent code $z$ on the generation process of $\hat{x}$. In particular, by modifying the latent code $z$ by adding Gaussian noise to it. The DPM-encoder is characterized by its dependence on the time step t ∈ T, which determines the level of noise added. As we increase the number of time steps, the sampled image becomes more saturated with noise. By manipulating the number of time steps in the DPM-encoder, also known as the diffusion process, we can control the amount of noise injected into the latent space. The resulting perturbed $\tilde{z}$ is then used as a starting point by the second pre-trained diffusion model to generate a new image $\hat{x}$. This allows us to evaluate the influence / capabilities of the latent code the DPM-Encoder provides, as we would expect that the more influence $z$ has on the reconstruction process of $\hat{x}$, the more divergence from an optimal domain-transferred generation is visible.
+### Experiment 1: Horizontally Flipping the Images
+Each image $x$ is horizontally flipped and fed into the CycleDiffusion model. The resulting latent space $z$ is stored after encoding. We compare the latent spaces of each original image with its horizontally flipped counterparts. The evaluation metrics employed for this comparison are the cosine similarity and the euclidean distance.
 
-We provide a quantitative analysis of the results by also measuring realism (FID) and faithfulness (SSIM) of the generated images and also provide a qualitative analysis focussing on whether local details such as the background, lighting, pose, and overall color of the animal are preserved.
 
-Through this investigation, we aim to gain insights into the behavior of the latent space under different noise conditions and understand how it influences the quality and fidelity of the generated images. We hypothesize that the same control over the generation can also be obtained by further improving the text prompts. We evaluate the trade-off between a noisy latent space $z$ and a quality improved textual prompt that provides a clearer guidance for the generation $\hat{x}$.
- 
- 
-**Weakness** It is very interesting to see that this method seems to succeed in this task. This raises the question of how much control / influence the DPM-Encoder's representation indeed has on the generation process of $\hat{x}$.
+### Experiment 2: Rotating the Images
+We rotate the image $x$ for various angles, namely 0°, 1°, 5°, 10°, 30°, 45°, and 90°, to observe the influence of rotation on the latent space $z$ while using the same original image $x$. To mitigate information loss resulting from mere image rotation, we employ a preprocessing procedure. Each 512x512 image $x$ undergoes mirror padding with a width and height of 128. This step is necessary to maintain the integrity of the image, as depicted in the bottom figure. Subsequently, the image is rotated at each designated angle, thereby generating six additional input images for each original image.
+
+![](blogpost_results/transformations.png)
+
+This process is repeated for each original input image, and subsequently for each image angle. Firstly, all the original images are fed into the CycleDiffusion model, and the resulting latent space $z$ is stored after encoding. Next, we conduct the experiment for another rotation angle, and similarly store the corresponding latent spaces $z$ for all the rotated images. Finally, we compare the latent spaces of each original image with its rotated counterparts. The evaluation metrics employed for this comparison are the cosine similarity and the euclidean distance. 
 
 
 # Results: 
+
+## Reproducibility
+
+Gathering our experimental data has allowed us to compare the average similarity metric against the average mentioned in the paper. In the original paper the authors used the cat test set from the AFHQ dataset. The authors do not explicitly mention how many images they compared, however we assume they used the entire test set. We compared 50 images, because of limited computational time. Our average SSIM score is 0.517, which is lower than the SSIM score of 0.557 in the paper. This is most likely because we did not use the entire test set.
+Reproducibility was not the main focus of our paper, and we therefore didn’t work on reproducing any other results from the paper.
 
 ## Encoding of high-frequency components
 The experiments have been carried out following the previously explained methodology. In total, a batch of 50 cat pictures from the database used in the original paper have been studied. As formerly said, for each of these images two new versions have been rendered:
@@ -100,7 +106,7 @@ The resulting generated images have the following form:
 ![](blogpost_results/output3.png)
 ![](blogpost_results/output4.png)
 
-As one can observe, each image has been modified to adjust the decoder image “into” the input image. Nevertheless, it is clear that this has more or less realistic results depending on the input: the decoded high frequency images keep having most of their characteristics (odd color combinations and sharp edges), whereas the low frequency images seem to lead to the most realistic results. 
+As one can observe, each image has been modified to adjust the decoded image “into” the input image. Nevertheless, it is clear that this has more or less realistic results depending on the input: the decoded high frequency images keep having most of their characteristics (odd color combinations and sharp edges), whereas the low frequency images seem to lead to the most realistic results. 
 
 The SSIM metric has been used to compare these images with each other (in pairs). The most relevant comparison is that of the generated dog (from the source image) with the generated high or low frequency images: we are comparing the difference between generating an image from the original latent space, and generating one from a (indirectly) modified latent space. The resulting statistics for the comparisons in all generated images for the original batch of 50 images are the following:
 
@@ -115,11 +121,12 @@ This can be more clearly visualized with the following violin plots:
 
 There is a clear difference in similarity between the generated image with high pass frequency filtering and low pass frequency filtering. Furthermore, it is also worth mentioning that the standard deviations are in similar ranges for both comparisons. 
 
-The nature of the decoder is to merge its image (a dog in this case) with the input (the original and edited versions of cats). The result, as seen from the statistics, is that images generated from low frequency cats are more similar to the normal generated images. This means that it is easier for the decoder to merge its image with a low frequency image than a high frequency image. 
+The nature of the decoder is to denoise the input (the original and edited versions of cats) and generate an image in the target domain (a dog in this case). The result, as seen from the statistics, is that images generated from low frequency cats are more similar to the normal generated images. This means that the decoder is able to generate a more realistic image in the target domain with a low frequency input image compared to a high frequency input image. 
 
-The reason behind this is that the low frequency image is more similar to noise, so there is not much information to begin with, and the decoder can easily merge it with its image. On the other hand, the high frequency images have more information, so there are more constraints and the decoder struggles to merge the images. 
+The reason behind this is that the low frequency image is more similar to noise than the high frequency image. Therefore, there is not much characteristic information to begin with and as such the decoder is able to generate a more realistic image within the target domain. On the other hand, the high frequency images have more characteristic information, so the denoising process is less effective at generating a realistic image from the input.
 
 This can be further proven by comparing the similarity between the original cat and the low frequency generated dog, and the original cat and the normal generated dog. The statistics are the following:
+
 | SSIM Score     | Mean   | Standard Deviation | Min                | Max                |
 |----------------------|--------|--------------------|--------------------|--------------------|
 | Original cats vs generated low pass filtered dog | 0.3317 | 0.0883             | 0.1233| 0.5212 |
@@ -129,13 +136,62 @@ These can be visualized with a violin plot:
 
 ![](blogpost_results/output6.png)
 
-The original cat is more similar to the normal generated dog than to the low frequency generated dog. Since the low frequency cat image has less information than both the original cat and the high frequency cat, it is easier for the decoder to put its dog image on top of it, and thus the resulting image is more similar to a dog than the original cat. 
+The original cat is more similar to the normal generated dog than to the low frequency generated dog. Since the low frequency cat image has less information than both the original cat and the high frequency cat, the decoder can more effectively denoise the latent code of the image, and thus the resulting image is more similar to a dog than the original cat. 
 
 From this explanation for the difference in similarities, it can be deduced that the higher frequency components of an image are more important, and therefore more predominant in the latent space of an image. 
 
-## Steering the noise
+## Impact of Image Transformations
+In our study, we aim to analyze how the input image $x$ affects the corresponding latent code $z$. Our approach involves transforming the input image $x$ and then comparing the latent space of these transformed images with that of the original image. The transformations can be divided into two main categories: horizontal flipping and rotation at different angles. To assess the impact, we utilize two evaluation metrics, namely the cosine similarity and euclidean distance.
+
+![](blogpost_results/cosine_similarity.png)
+![](blogpost_results/euclidian_distance.png)
+
+The first figure shows the mean and standard deviation of the cosine similarity and the second one the euclidean distance between the original input images and the variations of the input images. The following tables show the exact values of the results shown in the figures.
+
+|                 |  cos_sim |    euc_dist |
+|----------------:|---------:|------------:|
+|    variation    |          |             |
+|     original    | 1.000000 | 0.000000    |
+|     rotated0    | 1.000000 | 0.000000    |
+| rotated0flipped | 0.979841 | 2643.239990 |
+|     rotated1    | 0.985199 | 2255.402832 |
+|    rotated10    | 0.980630 | 2592.262207 |
+|    rotated30    | 0.979375 | 2676.824951 |
+|    rotated45    | 0.978728 | 2719.694824 |
+|     rotated5    | 0.981851 | 2506.610596 |
+|    rotated90    | 0.978464 | 2735.980713 |
+
+|                 |      cos_sim |   euc_dist |
+|----------------:|-------------:|-----------:|
+|    variation    |              |            |
+|     original    | 8.403787e-08 | 0.000000   |
+|     rotated0    | 8.403787e-08 | 0.000000   |
+| rotated0flipped | 5.469230e-03 | 354.997901 |
+|     rotated1    | 5.161229e-03 | 371.830091 |
+|    rotated10    | 5.272746e-03 | 347.944196 |
+|    rotated30    | 5.188180e-03 | 337.382562 |
+|    rotated45    | 5.287351e-03 | 338.413821 |
+|     rotated5    | 5.257743e-03 | 354.556911 |
+|    rotated90    | 5.423888e-03 | 345.810448 |
+
+The original image and the image rotated at 0° exhibit a cosine similarity of 1.0, implying consistent generation of the same latent representation by the model. This high cosine similarity suggests that the model consistently encodes the image into its latent space, indicating stability and reliability in its behavior. The euclidean distance between these representations is 0.0, indicating an exact match and no variation between the original latent representation and the one derived from the same image. Therefore, we can confidently conclude that the model consistently and reliably encodes the image into its latent space
+
+Moreover, when examining the case of image flipping, we observe a mean cosine similarity of 0.98. This value indicates that the latent representations of the original image and its horizontally flipped counterpart exhibit similar features and patterns. It suggests that the flipped image representation can be obtained by applying a straightforward operation, such as a horizontal flip, to the original image's latent representation. However, the results also reveal a mean euclidean distance of approximately 2643 for the flipped image. This indicates that the original image and its flipped version possess distinct latent representations. Consequently, flipping the image horizontally introduces significant changes in the latent space, and the flipped representation cannot be obtained merely through a direct transformation of the original image's latent representation.
+
+The average cosine similarity of the rotated images at 90° is approximately 0.978. This indicates that, despite the 90-degree rotation, the latent representations still exhibit similar features and patterns. It suggests that the rotated image representation can be derived from the original image's latent representation, although some differences arise due to the rotation. In contrast, the average euclidean distance for the image rotated at 90° is approximately 2735, indicating distinct latent representations between the images. Consequently, the 90-degree rotation introduces significant changes in the latent space, making it clear that the rotated representation cannot be obtained through a simple transformation of the original image's latent representation.
+
+It is worth noting that cosine similarity primarily captures similarity in vector direction or orientation, but it may not encompass all aspects of similarity. When it comes to image rotation, although the orientation of features may change, other factors such as texture, color, and overall content could still be preserved, resulting in a relatively high cosine similarity. The same holds true for image flipping, where certain aspects of the image (e.g., texture, color) may remain intact while others (e.g., orientation, spatial arrangement) are altered. To gain a more comprehensive understanding of the specific similarities and differences between the original and flipped representations, further analysis or visualization of the latent spaces and corresponding images may be necessary. This would allow for deeper insights into the specific transformations and their effects on different image attributes.
+
 
 # Conclusion:
+In conclusion, our analysis of the semantic variability of the encoded seed in the CycleDiffusion model has provided valuable insights. Regarding the first research question, in which we looked into the encoding of high-frequency components, our results indicate that the high-frequency components of an image play a more crucial role in the encoding process compared to low-frequency components. Removing the high-frequency components from an input image, leads to a more realistic generated image at the cost of visual similarity to the input image. In other words, the generated image loses the characteristic features of the input image when high-frequency components are removed.
+
+
+The second research question focused on analyzing the impact of input image transformations on the corresponding latent code. By examining horizontal flipping and rotation at various angles, we utilized cosine similarity and euclidean distance as evaluation metrics. We found that the model consistently encoded the original image into its latent space, implying that the model is stable and reliable. However, when exploring image flipping, the results suggest that the flipped representations shared similar features according to the cosine similarity, but distinct latent representations according to the euclidean distance. Similarly, image rotation seems to preserve some of the features according to the cosine similarity, but the euclidean distance results indicate substantial changes in the latent space. In summary, this research demonstrates that while the model exhibits stability and reliability in encoding images into their latent space, image transformations such as flipping and rotation introduce significant changes in the latent representations. This indicates the importance of considering various aspects beyond orientation when analyzing similarity in the latent space. 
+
+
+Overall, the analysis of the semantic variability of the encoded seed contributes to a more comprehensive understanding of the CycleDiffusion model. With our two research questions, we have seen that high frequency components of an image are crucial in preserving the characteristic features of an image and applying geometric transformations to an image has a significant influence on the encoded latent space.
+
 
 # Student contributions:
 Alon Shilo
@@ -147,6 +203,11 @@ Alon Shilo
 
 
 Dionne Gantzert
+- Worked on the second research question, together with Francesco.
+- Discussed and reported the method of the second research question in the blogpost.
+- Studied and reported the results of the second research question in the blogpost.
+- Conducted investigations on evaluating the latent space.
+- Preprocessed the input images.
 
 
 Francesco Tinner
@@ -159,7 +220,9 @@ Francesco Tinner
 
 Philip Schutte
 - Worked on the first research question, together with Alon and Quim.
-- Investigated the source code of the CycleDiffusion paper and implemented the necessary changes in order to run our own experiments.
+- Modified the source code of the CycleDiffusion paper such that we could run our own experiments.
+- Developed the experimental setup and made sure that it worked properly.
+- Gathered all the generated images by running the experimental setup.
 
 
 Quim Serra Faber
