@@ -11,8 +11,8 @@ To install the necessary dependencies, follow these steps:
 
 The experiments conducted to answer our research questions can be found in the [demos](demos/) folder. The output for each experiment has been saved already.
 
-- [Experiments related to research question 1](demos/experiment_1.ipynb)
-- [Experiments related to research question 2](demos/experiment_2.ipynb)
+- [Experiments related to research question 1](demos/RQ1_1.ipynb)
+- [Experiments related to research question 2](demos/RQ1_2.ipynb)
 
 For more detailed information about the experiments, please refer to the accompanying blog post.
 
