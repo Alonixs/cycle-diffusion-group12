@@ -1,0 +1,27 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_titanrtx_shared_course
+#SBATCH --gres=gpu:1
+#SBATCH --job-name=exp_1_2
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=3
+#SBATCH --time=00:30:00
+#SBATCH --mem=32000M
+#SBATCH --output=output_sim_calc_%A.out
+
+module purge
+module load 2021
+module load Anaconda3/2021.05
+
+source activate generative_prompt
+
+export RUN_NAME=experiment_1_2
+export SEED=42
+export OUTPUT=/home/lcur1732/cycle-diffusion-group12/src/cycle-diffusion/sim_outputs/
+export EXP=cat42-57
+export INPUT="/home/lcur1732/cycle-diffusion-group12/src/cycle-diffusion/output/${RUN_NAME}_${SEED}_${EXP}/"
+
+python calculate_z_sims.py --input $INPUT --output $OUTPUT
+
+
+conda deactivate

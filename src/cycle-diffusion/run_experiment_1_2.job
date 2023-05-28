@@ -20,10 +20,19 @@ export CUDA_VISIBLE_DEVICES=0
 export RUN_NAME=experiment_1_2
 export SEED=42
 export LOCAL_RANK=0
-export OUTPUT_DIR="${RUN_NAME}_${SEED}_cat27-42"
+export EXP=cat42-57
+export OUTPUT_DIR="${RUN_NAME}_${SEED}_${EXP}"
 
+# PREPROCESSING
 python rotate_images.py
 
+# RUN CYCLE DIFFUSION
 python -m torch.distributed.launch --nproc_per_node 1 --master_port 1446 main.py --seed $SEED --cfg experiments/$RUN_NAME.cfg --run_name $RUN_NAME$SEED --logging_strategy steps --logging_first_step true --logging_steps 4 --evaluation_strategy steps --eval_steps 50 --metric_for_best_model CLIPEnergy --greater_is_better false --save_strategy steps --save_steps 50 --save_total_limit 1 --load_best_model_at_end --gradient_accumulation_steps 4 --num_train_epochs 0 --adafactor false --learning_rate 1e-3 --do_eval --output_dir output/$OUTPUT_DIR --overwrite_output_dir --per_device_train_batch_size 1 --per_device_eval_batch_size 1 --eval_accumulation_steps 4 --ddp_find_unused_parameters true --verbose true --disable_wandb True --save_images True --custom_z_name rotated_images
+
+# SIMILARITY CALCULATION
+export INPUT="/home/lcur1732/cycle-diffusion-group12/src/cycle-diffusion/output/${RUN_NAME}_${SEED}_${EXP}/"
+export OUTPUT=/home/lcur1732/cycle-diffusion-group12/src/cycle-diffusion/sim_outputs/
+
+python calculate_z_sims.py --input $INPUT --output $OUTPUT
 
 conda deactivate
