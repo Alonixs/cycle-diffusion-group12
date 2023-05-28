@@ -150,6 +150,11 @@ Dionne Gantzert
 
 
 Francesco Tinner
+- Worked on the second research question, together with Dionne.
+- Helped set up the dependency notebook with Alon.
+- Set-up CycleDiffusion on Lisa to be able to run experiments on the GPU cluster.
+- Implemented modifications to the source code in order to run our own experiments.
+- Worked on RQ1_2 notebook.
 
 
 Philip Schutte
