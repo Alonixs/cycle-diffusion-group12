@@ -72,7 +72,9 @@ $x_1, ..., x_{T-1}, x_T \sim q(x_{1:T}|x_0), \epsilon_t = (x_{t-1} - \mu_T(x_t, 
 
 $z := (x_t \oplus \epsilon_T \oplus ... \oplus \epsilon_2 \oplus \epsilon_1)$
 
-Our investigation focuses on examining the impact of the input image $x$ on the corresponding latent code $z$. We do this for two different experiments. See `demos/RQ1_2.ipynb` for the notebook containing experiment 1 and 2.
+Our investigation focuses on examining the impact of the input image $x$ on the corresponding latent code $z$. This latent code is a vector containing more than 100 million dimensions. We expect that a comparision in terms of vector similarity metrics between two such large vectors will be difficult to interpret.  
+
+We perform two experiments. See `demos/RQ1_2.ipynb` for the notebook containing experiment 1 and 2.
 Experiment 1 focuses on the impact on the latent code $z$ by horizontally flipping the image $x$. Experiment 2 focuses on the impact on the latent code $z$ that is caused by rotating the image $x$ by various angles.
 
 ### Experiment 1: horizontally flipping the images
@@ -81,9 +83,9 @@ Each image $x$ is horizontally flipped and fed into the CycleDiffusion model. Th
 ### Experiment 2: rotating the images
 We rotate the image $x$ for various angles, namely 0°, 1°, 5°, 10°, 30°, 45°, and 90°, to observe the influence of rotation on the latent space $z$ while using the same original image $x$. To mitigate information loss resulting from mere image rotation, we employ a preprocessing procedure. Each 512x512 image $x$ undergoes mirror padding with a width and height of 128. This step is necessary to maintain the integrity of the image, as depicted in the bottom figure. Subsequently, the image is rotated at each designated angle, thereby generating six additional input images for each original image.
 
-![](blogpost_results/transformations.png)
+![](blogpost_results/perturbations.png)
 
-This process is repeated for each original input image, and subsequently for each image angle. Firstly, all the original images are fed into the CycleDiffusion model, and the resulting latent space $z$ is stored after encoding. Next, we conduct the experiment for another rotation angle, and similarly store the corresponding latent spaces $z$ for all the rotated images. Finally, we compare the latent spaces of each original image with its rotated counterparts. The evaluation metrics employed for this comparison are the cosine similarity and the Euclidean distance. 
+This process is repeated for each original input image, and subsequently for each image angle. Firstly, all the original images are fed into the CycleDiffusion model, and the resulting latent space $z$ is stored after encoding. Next, we conduct the experiment for another rotation angle, and similarly store the corresponding latent spaces $z$ for all the rotated images. Finally, we compare the latent spaces of each original image with its rotated counterparts. The evaluation metrics employed for this comparison are the cosine similarity and the Euclidean distance. We further compare whether the generation quality is affected by the degree of rotation of the input image.
 
 # Results: 
 
@@ -140,6 +142,9 @@ The original cat is more similar to the normal generated dog than to the low-fre
 From this explanation for the difference in similarities, it can be deduced that the higher frequency components of an image are more important, and therefore more predominant in the latent space of an image. 
 
 ## Impact of image transformations
+
+### Effect on $z$
+
 In our study, we aim to analyze how the input image $x$ affects the corresponding latent code $z$. Our approach involves transforming the input image $x$ and then comparing the latent space of these transformed images with that of the original image. The transformations can be divided into two main categories: horizontal flipping and rotation at different angles. To assess the impact, we utilize two evaluation metrics, namely the cosine similarity and Euclidean distance.
 
 ![](blogpost_results/cosine_similarity.png)
@@ -181,42 +186,47 @@ The average cosine similarity of the rotated images at 90° is approximately 0.9
 
 It is worth noting that cosine similarity primarily captures similarity in vector direction or orientation, but it may not encompass all aspects of similarity. When it comes to image rotation, although the orientation of features may change, other factors such as texture, color, and overall content could still be preserved, resulting in a relatively high cosine similarity. The same holds true for image flipping, where certain aspects of the image (e.g., texture, color) may remain intact while others (e.g., orientation, spatial arrangement) are altered. To gain a more comprehensive understanding of the specific similarities and differences between the original and flipped representations, further analysis or visualization of the latent spaces and corresponding images may be necessary. This would allow for deeper insights into the specific transformations and their effects on different image attributes.
 
+### Effect on the quality of the reconstructions $\hat{x}$
+![](blogpost_results/reconstructions.png)
+
+We note that the more the image is transformed, the more the performance in the image-to-image translation task decreases. For $x$ that were rotated more than 30 degrees, we note that the domain transfer seems to start failing, as $\hat{x}$ depicts clearly a cat and not a dog anymore. This is expected, as both the diffusion models are trained on unmodified images. The loss in performance is not associated to any loss in the quality of the image, as the reconstructions $\hat{x}$ are of high quality.
+
 # Conclusion:
 In conclusion, our analysis of the semantic variability of the encoded seed in the CycleDiffusion model has provided valuable insights. Regarding the first research question, in which we examined the encoding of high-frequency components, our results indicate that the high-frequency components of an image play a more crucial role in the encoding process compared to low-frequency components. Removing the high-frequency components from an input image, leads to a more realistic generated image at the cost of visual similarity to the input image. In other words, the generated image loses the characteristic features of the input image when high-frequency components are removed.
 
-The second research question focused on analyzing the impact of input image transformations on the corresponding latent code. By examining horizontal flipping and rotation at various angles, we utilized cosine similarity and Euclidean distance as evaluation metrics. We found that the model consistently encoded the original image into its latent space, implying that the model is stable and reliable. However, when exploring image flipping, the results suggest that the flipped representations shared similar features according to the cosine similarity, but distinct latent representations according to the Euclidean distance. Similarly, image rotation seems to preserve some of the features according to the cosine similarity, but the Euclidean distance results indicate substantial changes in the latent space. In summary, this research demonstrates that while the model exhibits stability and reliability in encoding images into their latent space, image transformations such as flipping, and rotation introduce significant changes in the latent representations. This indicates the importance of considering various aspects beyond orientation when analyzing similarity in the latent space. 
+The second research question focused on analyzing the impact of input image transformations on the corresponding latent code. By examining horizontal flipping and rotation at various angles, we utilized cosine similarity and Euclidean distance as evaluation metrics. We found that the model consistently encoded the original image into its latent space, implying that the model is stable and reliable. However, when exploring image flipping, the results suggest that the flipped representations shared similar features according to the cosine similarity, but distinct latent representations according to the Euclidean distance. Similarly, image rotation seems to preserve some of the features according to the cosine similarity, but the Euclidean distance results indicate substantial changes in the latent space. In summary, this research demonstrates that while the model exhibits stability and reliability in encoding images into their latent space, image transformations such as flipping, and rotation introduce significant changes in the latent representations. This indicates the importance of considering various aspects beyond orientation when analyzing similarity in the latent space.
 
 Overall, the analysis of the semantic variability of the encoded seed contributes to a more comprehensive understanding of the CycleDiffusion model. With our two research questions, we have seen that high-frequency components of an image are crucial in preserving the characteristic features of an image and applying geometric transformations to an image has a significant influence on the encoded latent space.
 
 # Student contributions:
-Alon Shilo
+Alon
 - Worked on the first research question, together with Philip and Quim. 
 - Helped set up the dependency notebook with Francesco.
 - Implemented low/high pass filter for our experiments.
 - Worked on the pipeline of our notebook, which consists of 3 different experiments for comparing images with the SSIM metric.
 - Structured the GitHub repo and cleaned some of it.
 
-Dionne Gantzert
+Dionne
 - Worked on the second research question, together with Francesco.
 - Discussed and reported the method of the second research question in the blogpost.
 - Studied and reported the results of the second research question in the blogpost.
 - Conducted investigations on evaluating the latent space.
 - Preprocessed the input images.
 
-Francesco Tinner
+Francesco
 - Worked on the second research question, together with Dionne.
 - Helped set up the dependency notebook with Alon.
 - Set-up CycleDiffusion on Lisa to be able to run experiments on the GPU cluster.
 - Implemented modifications to the source code in order to run our own experiments.
 - Worked on RQ1_2 notebook.
 
-Philip Schutte
+Philip
 - Worked on the first research question, together with Alon and Quim.
 - Modified the source code of the CycleDiffusion paper such that we could run our own experiments.
 - Developed the experimental setup and made sure that it worked properly.
 - Gathered all the generated images by running the experimental setup.
 
-Quim Serra Faber
+Quim
 - Worked on the first research question, together with Philip and Alon. 
 - Implemented low/high pass filter for our experiments.
 - Wrote the general parts of the blogpost
